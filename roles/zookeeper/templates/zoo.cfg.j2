@@ -1,0 +1,9 @@
+tickTime=2000
+dataDir=/data
+dataLogDir=/datalog
+clientPort={{ zoo_client_port }}
+initLimit=5
+syncLimit=2
+{% for host in groups['mq'] %}
+server.{{ hostvars[host].myid }}={{ hostvars[host].inventory_hostname }}:{{ zoo_cluster_port }}:{{ zoo_leader_port }}
+{% endfor %}

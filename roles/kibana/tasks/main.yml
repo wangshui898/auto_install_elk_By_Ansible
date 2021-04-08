@@ -1,0 +1,41 @@
+---
+- name: Create kibana directory
+  file:
+    dest={{ item }}
+    state=directory
+    owner=1000
+  with_items:
+    - "{{ elk_data_dir }}/kibana/config"
+    - "{{ elk_data_dir }}/kibana/logs"
+    - "{{ docker_compose_dir}}/kibana"
+
+- name: copy docker image for kibana
+  when: install_mode == "offline"
+  copy:
+    src={{ item }}
+    dest={{ elk_tmp_dir }}/images
+  with_fileglob:
+    - "{{ elk_src_dir }}/images/docker-kibana*.tar"
+
+- name: import docker image for kibana
+  when: install_mode == "offline"
+  shell: cd {{ elk_tmp_dir }}/images && ls *.tar|grep docker-kibana*.tar |xargs docker load -i
+
+- name: Copy kibana and docker-compose.yml
+  tags: upload_kibana_config
+  template:
+    src={{ item.src }}
+    dest={{ item.dest }}
+  with_items:
+    - { src: "kibana.yml.j2", dest: "{{ elk_data_dir }}/kibana/config/kibana.yml" }
+    - { src: "docker-compose.yml.j2", dest: "{{ docker_compose_dir }}/kibana/docker-compose.yml" }
+    
+- name: Create kibana container
+  tags: create_kibana
+  shell: cd {{ docker_compose_dir }}/kibana;docker-compose up -d; sleep 10
+  
+- name: Restart kibana container
+  tags:
+    - never
+    - restart_kibana
+  shell: cd {{ docker_compose_dir }}/kibana;docker-compose restart kibana; sleep 10

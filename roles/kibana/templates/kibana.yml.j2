@@ -1,0 +1,16 @@
+#
+# ** THIS IS AN AUTO-GENERATED FILE **
+#
+
+# Default Kibana configuration for docker target
+server.name: {{ kibana_server_name }}
+server.port: {{ kibana_client_port }}
+server.host: "0"
+elasticsearch.hosts: [ {% for host in groups['es'] %}"http://{{ hostvars[host].inventory_hostname }}:{{ es_client_port }}"{% if not loop.last %},{% endif %}{% endfor %} ]
+monitoring.ui.container.elasticsearch.enabled: true
+#i18n.locale: "zh-CN"
+
+xpack.security.enabled: false
+xpack.security.encryptionKey: "fhjskloppd678ehkdfdlliverpoolfcr"
+elasticsearch.username: "elastic"
+elasticsearch.password: "R7XPdN4wdoi4yLSEfn3z"

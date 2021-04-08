@@ -1,0 +1,43 @@
+---
+- name: Create logstash directory
+  file:
+    dest={{ item }}
+    state=directory
+    owner=1000
+  with_items:
+    - "{{ elk_data_dir }}/logstash/data"
+    - "{{ elk_data_dir }}/logstash/config"
+    - "{{ elk_data_dir }}/logstash/pipeline"
+    - "{{ docker_compose_dir}}/logstash"
+
+- name: copy docker image for logstash
+  when: install_mode == "offline"
+  copy:
+    src={{ item }}
+    dest={{ elk_tmp_dir }}/images
+  with_fileglob:
+    - "{{ elk_src_dir }}/images/docker-logstash*.tar"
+
+- name: import docker image for logstash
+  when: install_mode == "offline"
+  shell: cd {{ elk_tmp_dir }}/images && ls *.tar|grep docker-logstash*.tar |xargs docker load -i
+
+- name: Copy logstash and docker-compose.yml
+  tags: upload_logstash_config
+  template:
+    src={{ item.src }}
+    dest={{ item.dest }}
+  with_items:
+    - { src: "logstash.yml.j2", dest: "{{ elk_data_dir }}/logstash/config/logstash.yml" }
+    - { src: "elk_logstash.conf.j2", dest: "{{ elk_data_dir }}/logstash/pipeline/elk_logstash.conf" }
+    - { src: "docker-compose.yml.j2", dest: "{{ docker_compose_dir }}/logstash/docker-compose.yml" }
+    
+- name: Create logstash container
+  tags: create_logstash
+  shell: cd {{ docker_compose_dir }}/logstash;docker-compose up -d; sleep 10
+  
+- name: Restart logstash container
+  tags:
+    - never
+    - restart_logstash
+  shell: cd {{ docker_compose_dir }}/logstash;docker-compose restart kafka; sleep 10

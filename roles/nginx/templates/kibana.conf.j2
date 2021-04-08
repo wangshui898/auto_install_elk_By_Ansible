@@ -1,0 +1,15 @@
+stream {
+    log_format  main  '$remote_addr $upstream_addr - [$time_local] $status $upstream_bytes_sent';
+    access_log  /var/log/nginx/kibana-access.log  main;
+    
+    upstream kibana-server {
+       hash $remote_addr consistent;
+       {% for host in groups['kibana'] %}
+       server {{ hostvars[host].inventory_hostname }}:{{ kibana_client_port }};
+       {% endfor %} 
+    }    
+    server {
+       listen {{ kibana_vip_port }};
+       proxy_pass kibana-server;
+    }
+}

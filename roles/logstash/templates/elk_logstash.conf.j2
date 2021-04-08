@@ -1,0 +1,50 @@
+## input from Beats
+input {
+  beats {
+    port => 5044
+  }
+}
+
+## input from kafka
+input {
+  # https://www.elastic.co/guide/en/logstash/current/plugins-inputs-kafka.html
+  # 从kafka获取消息
+  kafka {
+      # 服务器列表，可动态更改不必重启logstash
+      bootstrap_servers => "{% for host in groups['mq'] %}{{ hostvars[host].inventory_hostname }}:{{ kafka_client_port }}{% if not loop.last %},{% endif %}{% endfor %}"
+
+      # 提交消费情况 默认5000ms 一次
+      auto_commit_interval_ms => 5000
+
+      # 消费组
+      group_id => "logstash"
+
+      # 消费者
+      client_id => "{{ host_name }}"
+
+      # 消费者线程(默认为1)，保证 消费的分区数和线程数一致以达到完美效果，线程数大于消费的分区数时将会产生空闲线程
+      consumer_threads => 1
+
+      # Kafka中没有初始偏移量或偏移量超出范围时,自动将偏移量重置为最新偏移量
+      auto_offset_reset => "latest"
+
+      # 主题,数组格式,可设置多个
+      topics => ["kibana-nginx-topic"]
+
+      # 自定义字段
+      add_field => {"logstash" => "{{ inventory_hostname }}"}
+      codec => json { charset => "UTF-8" }
+  }
+}
+
+## output to elasticsearch
+output {
+        elasticsearch {
+        ## es服务地址
+        hosts => [{% for host in groups['es'] %}"{{ hostvars[host].inventory_hostname }}:{{ es_client_port }}"{% if not loop.last %},{% endif %}{% endfor %}]
+        ## 用户名密码
+        ## user => "elastic"
+        ## password => "elastic123456"
+        index => "kibana-nginx-%{index_time}"
+    }
+}

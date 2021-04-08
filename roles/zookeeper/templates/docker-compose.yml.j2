@@ -1,0 +1,14 @@
+version: "3"
+services:
+  zookeeper:
+    container_name: zookeeper
+    image: {{ zoo_image }}
+    network_mode: host
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime
+      - {{ elk_data_dir }}/zookeeper/conf/zoo.cfg:/conf/zoo.cfg
+      - {{ elk_data_dir }}/zookeeper/data:/data
+      - {{ elk_data_dir }}/zookeeper/datalog:/datalog
+    environment:
+      ZOO_MY_ID: {{ myid }}

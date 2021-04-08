@@ -1,0 +1,41 @@
+---
+- name: Create kafka directory
+  file:
+    dest={{ item }}
+    state=directory
+  with_items:
+    - "{{ elk_data_dir }}/kafka/data"
+    - "{{ elk_data_dir }}/kafka/config"
+    - "{{ elk_data_dir }}/kafka/logs"
+    - "{{ docker_compose_dir}}/kafka"
+
+- name: copy docker image for kafka
+  when: install_mode == "offline"
+  copy:
+    src={{ item }}
+    dest={{ elk_tmp_dir }}/images
+  with_fileglob:
+    - "{{ elk_src_dir }}/images/docker-kafka*.tar"
+
+- name: import docker image for kafka
+  when: install_mode == "offline"
+  shell: cd {{ elk_tmp_dir }}/images && ls *.tar|grep docker-kafka*.tar |xargs docker load -i
+
+- name: Copy kafka and docker-compose.yml
+  tags: upload_kafka_config
+  template:
+    src={{ item.src }}
+    dest={{ item.dest }}
+  with_items:
+    - { src: "server.properties.j2", dest: "{{ elk_data_dir }}/kafka/config/server.properties" }
+    - { src: "docker-compose.yml.j2", dest: "{{ docker_compose_dir }}/kafka/docker-compose.yml" }
+    
+- name: Create kafka container
+  tags: create_kafka
+  shell: cd {{ docker_compose_dir }}/kafka;docker-compose up -d; sleep 5
+  
+- name: Restart kafka container
+  tags:
+    - never
+    - restart_kafka
+  shell: cd {{ docker_compose_dir }}/kafka;docker-compose restart kafka; sleep 5

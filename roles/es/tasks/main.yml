@@ -1,0 +1,63 @@
+---
+- name: 配置sysctl.conf
+  tags: config_sysctl
+  lineinfile:
+     dest:  /etc/sysctl.conf
+     regexp: "{{ item.regexp }}"
+     line: "{{ item.line }}"
+  with_items:
+    - { regexp: "vm.max_map_count", line: "vm.max_map_count=655360" }
+
+- name: 生效配置
+  shell: |
+    sysctl -p
+    
+- name: Create elasticsearch directory
+  file:
+    dest={{ item }}
+    state=directory
+    owner=1000
+  with_items:
+    - "{{ elk_data_dir }}/elasticsearch/data"
+    - "{{ elk_data_dir }}/elasticsearch/config"
+    - "{{ elk_data_dir }}/elasticsearch/logs"
+    - "{{ docker_compose_dir}}/elasticsearch"
+
+- name: copy docker image for elasticsearch
+  when: install_mode == "offline"
+  copy:
+    src={{ item }}
+    dest={{ elk_tmp_dir }}/images
+  with_fileglob:
+    - "{{ elk_src_dir }}/images/docker-elasticsearch*.tar"
+
+- name: import docker image for elasticsearch
+  when: install_mode == "offline"
+  shell: cd {{ elk_tmp_dir }}/images && ls *.tar|grep docker-elasticsearch*.tar |xargs docker load -i
+
+- name: Copy elasticsearch and docker-compose.yml
+  tags: upload_elasticsearch_config
+  template:
+    src={{ item.src }}
+    dest={{ item.dest }}
+  with_items:
+    - { src: "elasticsearch.yml.j2", dest: "{{ elk_data_dir }}/elasticsearch/config/elasticsearch.yml" }
+    - { src: "docker-compose.yml.j2", dest: "{{ docker_compose_dir }}/elasticsearch/docker-compose.yml" }
+
+- name: Copy elasticsearch certificates
+  tags: upload_elasticsearch_config
+  copy:
+    src={{ item.src }}
+    dest={{ item.dest }}
+  with_items:
+    - { src: "elastic-certificates.p12", dest: "{{ elk_data_dir }}/elasticsearch/config/elastic-certificates.p12" }
+
+- name: Create elasticsearch container
+  tags: create_elasticsearch
+  shell: cd {{ docker_compose_dir }}/elasticsearch;docker-compose up -d; sleep 10
+  
+- name: Restart elasticsearch container
+  tags:
+    - never
+    - restart_elasticsearch
+  shell: cd {{ docker_compose_dir }}/elasticsearch;docker-compose restart elasticsearch; sleep 10

@@ -1,0 +1,42 @@
+- name: 解压分发{{ docker_version }}
+  unarchive:
+    src={{ item }}
+    dest={{ elk_tmp_dir }}
+  with_fileglob:
+    - "{{ elk_src_dir }}/apps/docker-*.tgz"
+ 
+- name: 移动docker可执行文件到对应bin目录
+  shell: mv {{ elk_tmp_dir }}/docker/* /usr/bin/
+
+- name: 创建docker配置目录
+  file:
+    dest=/etc/docker
+    state=directory
+
+- name: 分发docker配置文件
+  when: install_mode == "online"
+  template:
+    src=daemon.json.j2
+    dest=/etc/docker/daemon.json
+
+- name: 分发docker启动文件
+  template:
+    src=docker.service.j2
+    dest=/usr/lib/systemd/system/docker.service
+
+- name: 启动docker
+  tags: restart_docker
+  systemd: name=docker state=restarted enabled=yes daemon_reload=yes
+
+- name: docker启动状态检测
+  shell: docker info
+  register: status
+
+- name: docker状态
+  debug: msg={{ status.stdout_lines }}
+  
+- name: docker-compose部署
+  copy: 
+    src={{ elk_src_dir }}/apps/docker-compose-Linux-x86_64
+    dest=/usr/bin/docker-compose
+    mode=0755

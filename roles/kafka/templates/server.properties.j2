@@ -1,0 +1,60 @@
+################################################## System ################################################
+broker.id={{ myid }}
+listeners=PLAINTEXT://{{ inventory_hostname }}:{{ kafka_client_port }}
+advertised.listeners=PLAINTEXT://{{ inventory_hostname }}:{{ kafka_client_port }}
+advertised.port={{ kafka_client_port }}
+port={{ kafka_client_port }}
+group.initial.rebalance.delay.ms=0
+
+########################################### Replication configurations #######################################
+num.replica.fetchers=1
+replica.fetch.max.bytes=1048576
+replica.fetch.wait.max.ms=500
+replica.high.watermark.checkpoint.interval.ms=5000
+replica.socket.timeout.ms=30000
+replica.socket.receive.buffer.bytes=65536
+replica.lag.time.max.ms=10000
+replica.lag.max.messages=4000
+compression.codec:none
+controller.socket.timeout.ms=30000
+controller.message.queue.size=10
+controlled.shutdown.enable=true
+default.replication.factor:2
+
+############################################### Topic configuration ##################################################
+num.partitions=1
+num.recovery.threads.per.data.dir=1
+message.max.bytes=1000000
+auto.create.topics.enable=true
+auto.leader.rebalance.enable=true
+offsets.topic.replication.factor=1
+
+############################################### Log configuration ##################################################
+log.dirs=/kafka
+log.index.interval.bytes=4096
+log.index.size.max.bytes=10485760
+log.retention.hours=168                                                 #保留三天，也可以更短
+log.flush.interval.ms=10000                                             #每间隔1秒钟时间，刷数据到磁盘
+log.flush.interval.messages=20000                               #log数据文件刷新策略
+log.flush.scheduler.interval.ms=2000
+log.roll.hours=72
+log.retention.check.interval.ms=300000
+log.segment.bytes=1073741824                                    #kafka启动时是单线程扫描目录(log.dir)下所有数据文件
+transaction.state.log.replication.factor=1
+transaction.state.log.min.isr=1
+
+################################################# ZK configuration ####################################################
+zookeeper.connect={% for host in groups['mq'] %}{{ hostvars[host].inventory_hostname }}:{{ kafka_client_port }}{% if not loop.last %},{% endif %}{% endfor %}
+
+zookeeper.connection.timeout.ms=6000
+zookeeper.sync.time.ms=2000
+
+################################################# Socket server configuration#####################################
+num.io.threads=9                                #配置线程数量为cpu核数加1
+num.network.threads=8                   #配置线程数量为cpu核数2倍，最大不超过3倍
+socket.request.max.bytes=104857600
+socket.receive.buffer.bytes=1048576
+socket.send.buffer.bytes=1048576
+queued.max.requests=500
+fetch.purgatory.purge.interval.requests=1000
+producer.purgatory.purge.interval.requests=1000

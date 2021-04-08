@@ -1,0 +1,58 @@
+---
+- name: 0.系统初始化设置
+  tags: common
+  gather_facts: no
+  hosts: 
+    - elk
+  roles: 
+    - common
+
+- name: 1.部署Docker
+  tags: docker
+  gather_facts: no
+  hosts: 
+    - elk
+  roles: 
+    - docker
+
+- name: 2.部署消息队列服务
+  tags: mq
+  gather_facts: no
+  hosts: 
+    - mq
+  roles:
+    - zookeeper
+    - kafka
+    
+- name: 3.部署Elasticsearch
+  tags: es
+  gather_facts: no
+  hosts: 
+    - es
+  roles:
+    - es
+    
+- name: 4.部署Logstash
+  tags: logstash
+  gather_facts: no
+  hosts: 
+    - logstash
+  roles:
+    - logstash
+
+- name: 5.部署Kibana
+  tags: kibana
+  gather_facts: no
+  hosts: 
+    - kibana
+  roles:
+    - kibana
+    
+- name: 6.部署HA
+  tags: ha
+  gather_facts: no
+  hosts: 
+    - HA
+  roles: 
+    - nginx
+    - keepalived

@@ -1,0 +1,27 @@
+- name: 解压分发keepalived
+  unarchive:
+    src={{ item }}
+    dest={{ elk_tmp_dir }}
+  with_fileglob:
+    - "{{ elk_src_dir }}/apps/keepalived-*.tar.gz"
+ 
+- name: 移动docker可执行文件到对应bin目录
+  shell: |
+         cd {{ elk_tmp_dir }}/keepalived*/
+         mkdir -p /etc/keepalived
+         cp sbin/keepalived  /usr/bin/
+         cp etc/sysconfig/keepalived /etc/sysconfig/
+         cp etc/keepalived/keepalived.conf /etc/keepalived/
+         
+- name: Copy config files
+  tags: upload_keepalived_config
+  template:
+    src={{ item.src }}
+    dest={{ item.dest }}
+  with_items:
+    - { src: "keepalived.conf.j2", dest: "/etc/keepalived/keepalived.conf" }
+    
+- name: restart start keepalived
+  tags:
+    - restart_keepalived
+  shell: pkill -9 keepalived |true; /usr/bin/keepalived -f /etc/keepalived/keepalived.conf

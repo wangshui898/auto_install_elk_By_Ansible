@@ -1,0 +1,13 @@
+version: "3"
+services:
+  nginx:
+    container_name: nginx
+    image: {{ nginx_image }}
+    network_mode: host
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime
+      - {{ elk_data_dir }}/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - {{ elk_data_dir }}/nginx/upstream:/etc/nginx/upstream
+      - {{ elk_data_dir }}/nginx/vhosts:/etc/nginx/conf.d
+      - {{ elk_data_dir }}/nginx/logs:/var/log/nginx

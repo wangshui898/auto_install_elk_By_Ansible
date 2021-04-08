@@ -1,0 +1,52 @@
+---
+- name: 关闭firewalld
+  systemd: name=firewalld state=stopped enabled=no
+  
+- name: 关闭selinux
+  selinux:
+    state: disabled
+    
+- name: 拷贝时区
+  copy: src=/usr/share/zoneinfo/Asia/Shanghai dest=/etc/localtime
+
+- name: 设置主机名
+  raw: hostnamectl set-hostname {{ host_name }} &&
+       hostname {{ host_name }}
+  
+- name: 添加hosts
+  template: src=hosts.j2 dest=/etc/hosts
+
+- name: 配置DNS
+  when: install_mode == "online"
+  template: src=resolv.conf.j2 dest=/etc/resolv.conf
+  
+- name: 配置sysctl.conf
+  tags: config_sysctl
+  lineinfile:
+     dest:  /etc/sysctl.conf
+     regexp: "{{ item.regexp }}"
+     line: "{{ item.line }}"
+  with_items:
+    - { regexp: "net.ipv4.ip_forward", line: "net.ipv4.ip_forward=1" }
+    
+- name: 配置limits
+  tags: config_limits
+  lineinfile:
+     dest:  /etc/security/limits.conf
+     regexp: "{{ item.regexp }}"
+     line: "{{ item.line }}"
+  with_items:
+    - { regexp: '\* soft nproc', line: '* soft nproc 65535' }
+    - { regexp: '\* hard nproc', line: '* hard nproc 65535' }
+    - { regexp: '\* soft nofile', line: '* soft nofile 65535' }
+    - { regexp: '\* hard nofile', line: '* hard nofile 65535' }
+
+- name: 生效配置
+  shell: |
+    sysctl -p
+    ulimit -n
+
+- name: 创建ELK项目临时目录
+  file:
+    dest={{ elk_tmp_dir }}/images
+    state=directory

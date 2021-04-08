@@ -1,0 +1,15 @@
+version: "3"
+services:
+  logstash:
+    container_name: logstash
+    image: {{ logstash_image }}
+    restart: always
+    ports:
+      - "{{ logstash_listen_port }}:{{ logstash_listen_port }}"
+    volumes:
+      - {{ elk_data_dir }}/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - {{ elk_data_dir }}/logstash/data:/usr/share/logstash/data
+      - {{ elk_data_dir }}/logstash/pipeline:/usr/share/logstash/pipeline
+      - {{ elk_data_dir }}/logstash/logs:/usr/share/logstash/logs
+    environment:
+      LS_JAVA_OPTS: "-Xmx2G -Xms2G"

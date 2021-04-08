@@ -1,0 +1,43 @@
+---
+- name: Create Nginx directory
+  file:
+    dest={{ item }}
+    state=directory
+  with_items:
+    - "{{ elk_data_dir }}/nginx/upstream"
+    - "{{ elk_data_dir }}/nginx/vhosts"
+    - "{{ elk_data_dir }}/nginx/logs"
+    - "{{ docker_compose_dir }}/nginx"
+
+- name: copy docker image for Nginx
+  when: install_mode == "offline"
+  copy:
+    src={{ item }}
+    dest={{ elk_tmp_dir }}/images
+  with_fileglob:
+    - "{{ elk_src_dir }}/images/docker-nginx*.tar"
+
+- name: import docker image for Nginx
+  when: install_mode == "offline"
+  shell: cd {{ elk_tmp_dir }}/images && ls *.tar|grep docker-nginx*.tar |xargs docker load -i
+
+- name: Copy config files and docker-compose.yml
+  tags: upload_nginx_config
+  template:
+    src={{ item.src }}
+    dest={{ item.dest }}
+  with_items:
+    - { src: "nginx.conf.j2", dest: "{{ elk_data_dir }}/nginx/nginx.conf" }
+    - { src: "kibana.conf.j2", dest: "{{ elk_data_dir }}/nginx/upstream/kibana.conf" }
+    - { src: "docker-compose.yml.j2", dest: "{{ docker_compose_dir }}/nginx/docker-compose.yml" }
+
+- name: Create nginx container
+  tags: create_nginx
+  shell: cd {{ docker_compose_dir }}/nginx;docker-compose up -d; sleep 5
+  
+- name: Restart nginx container
+  tags: 
+    - never
+    - restart_nginx
+  shell: cd {{ docker_compose_dir }}/nginx;docker-compose restart nginx; sleep 5
+

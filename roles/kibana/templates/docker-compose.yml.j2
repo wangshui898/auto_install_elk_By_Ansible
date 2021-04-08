@@ -1,0 +1,10 @@
+version: "3"
+services:
+  kibana:
+    container_name: kibana
+    image: {{ kibana_image }}
+    restart: always
+    ports:
+      - "{{ kibana_client_port }}:{{ kibana_client_port }}"
+    volumes:
+      - {{ elk_data_dir }}/kibana/config/kibana.yml:/opt/kibana/config/kibana.yml

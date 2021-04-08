@@ -1,0 +1,9 @@
+node.name: logstast-{{ host_name }}
+http.host: "0.0.0.0"
+path.data: data
+path.logs: /usr/share/logstash/logs
+path.config: /usr/share/logstash/pipeline/
+config.reload.automatic: true
+config.test_and_exit: false
+pipeline.id: main
+pipeline.batch.size: 125

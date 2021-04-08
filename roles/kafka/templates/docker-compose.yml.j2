@@ -1,0 +1,19 @@
+version: "3"
+services:
+  kafka:
+    container_name: kafka
+    image: {{ kafka_image }}
+    network_mode: host
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime
+#      - {{ elk_data_dir }}/kafka/conf/server.properties:/opt/kafka/config/server.properties
+      - {{ elk_data_dir }}/kafka/data:/kafka
+      - {{ elk_data_dir }}/kafka/logs:/opt/kafka/logs
+    environment:
+      KAFKA_ADVERTISED_PORT: {{ kafka_client_port }}
+      KAFKA_ZOOKEEPER_CONNECT: {% for host in groups['mq'] %}{{ hostvars[host].inventory_hostname }}:{{ zoo_client_port }}{% if not loop.last %},{% endif %}{% endfor %}
+      
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://{{ inventory_hostname }}:{{ kafka_client_port }}
+      KAFKA_LISTENERS: PLAINTEXT://{{ inventory_hostname }}:{{ kafka_client_port }}
+      KAFKA_HEAP_OPTS: "-Xmx1G -Xms1G"

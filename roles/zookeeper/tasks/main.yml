@@ -1,0 +1,42 @@
+---
+- name: Create zookeeper directory
+  file:
+    dest={{ item }}
+    state=directory
+  with_items:
+    - "{{ elk_data_dir }}/zookeeper/data"
+    - "{{ elk_data_dir }}/zookeeper/conf"
+    - "{{ elk_data_dir }}/zookeeper/datalog"
+    - "{{ docker_compose_dir }}/zookeeper"
+
+- name: copy docker image for zookeeper
+  when: install_mode == "offline"
+  copy:
+    src={{ item }}
+    dest={{ elk_tmp_dir }}/images
+  with_fileglob:
+    - "{{ elk_src_dir }}/images/docker-zookeeper*.tar"
+
+- name: import docker image for zookeeper
+  when: install_mode == "offline"
+  shell: cd {{ elk_tmp_dir }}/images && ls *.tar|grep docker-zookeeper*.tar |xargs docker load -i
+
+- name: Copy zoo.cfg and docker-compose.yml
+  tags: upload_zookeeper_config
+  template:
+    src={{ item.src }}
+    dest={{ item.dest }}
+  with_items:
+    - { src: "zoo.cfg.j2", dest: "{{ elk_data_dir }}/zookeeper/conf/zoo.cfg" }
+    - { src: "docker-compose.yml.j2", dest: "{{ docker_compose_dir }}/zookeeper/docker-compose.yml" }
+    
+- name: Create zookeeper container
+  tags: create_zookeeper
+  shell: cd {{ docker_compose_dir }}/zookeeper;docker-compose up -d; sleep 5
+  
+- name: Restart zookeeper container
+  tags:
+    - never
+    - restart_zookeeper
+  shell: cd {{ docker_compose_dir }}/zookeeper;docker-compose restart zookeeper; sleep 5
+
