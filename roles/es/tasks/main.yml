@@ -60,4 +60,4 @@
   tags:
     - never
     - restart_elasticsearch
-  shell: cd {{ docker_compose_dir }}/elasticsearch;docker-compose restart elasticsearch; sleep 10
+  shell: cd {{ docker_compose_dir }}/elasticsearch;docker-compose restart es; sleep 10
